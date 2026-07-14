@@ -17,6 +17,14 @@ internal sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) :
                 503,
                 "AI_PROVIDER_NOT_CONFIGURED",
                 "The official AI provider is not configured."),
+            AiProviderRequestException => new ApiError(
+                502,
+                "AI_PROVIDER_REQUEST_FAILED",
+                "The official AI provider request failed."),
+            AiProviderInvalidResponseException => new ApiError(
+                502,
+                "AI_PROVIDER_INVALID_RESPONSE",
+                "The official AI provider returned an invalid response."),
             _ => null
         };
 

@@ -15,6 +15,7 @@ obj/
 .env.*
 !.env.example
 appsettings.Development.local.json
+App_Data/
 *.p12
 *.mobileprovision
 

@@ -1,0 +1,32 @@
+name: Apple Package CI
+
+on:
+  push:
+    branches: [main, "agent/**"]
+    paths:
+      - "clients/apple/**"
+      - "contracts/ai/**"
+      - ".github/workflows/apple-ci.yml"
+  pull_request:
+    paths:
+      - "clients/apple/**"
+      - "contracts/ai/**"
+      - ".github/workflows/apple-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apple-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  swift-package:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show toolchain
+        run: xcodebuild -version
+      - name: Build and test HealthMonitorCore
+        run: swift test --package-path clients/apple/Packages/HealthMonitorCore

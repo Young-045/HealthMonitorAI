@@ -14,6 +14,8 @@
 
 - [`docs/architecture-design.md`](docs/architecture-design.md)：完整产品与技术设计；
 - [`docs/roadmap.md`](docs/roadmap.md)：阶段路线和任务清单；
+- [`docs/admin-console.md`](docs/admin-console.md)：后台账户与官方 AI 配置；
+- [`docs/github-actions.md`](docs/github-actions.md)：服务端和 Apple CI/签名方案；
 - `src/server/HealthMonitorAI.Api`：官方 AI 最小化网关；
 - `clients/apple/Packages/HealthMonitorCore`：iPhone/watchOS 共享 Swift Package；
 - `contracts/ai`：跨端 AI JSON Schema。
@@ -26,8 +28,10 @@ dotnet build HealthMonitorAI.slnx --no-restore
 dotnet run --project src/server/HealthMonitorAI.Api
 ```
 
+运行后台前需通过环境变量设置至少 12 位的 `Admin__Password`，然后访问 `/admin`。官方 Provider API Key 只以加密形式保存在服务端 `App_Data`；用户自己的 BYOK Key 仍只在设备 Keychain。
+
 Apple 客户端需要在 macOS/Xcode 环境中创建最终 App Targets，并接入仓库中的 `HealthMonitorCore` Package。
 
 ## 当前状态
 
-项目已进入架构与 MVP 骨架阶段。官方 AI Provider 尚未配置，调用餐食识别端点会明确返回 `503 AI_PROVIDER_NOT_CONFIGURED`。
+项目已进入架构与 MVP 骨架阶段。后台可配置 OpenAI 兼容的官方 AI Provider；未启用或未配置时，餐食识别端点会明确返回 `503 AI_PROVIDER_NOT_CONFIGURED`。GitHub Actions 已在 macOS runner 上编译并测试共享 Swift Package。

@@ -7,6 +7,7 @@
 - [x] 完成架构文档
 - [x] 建立 AI JSON Schema
 - [x] 建立服务端与 Swift Package 骨架
+- [x] 建立服务端和 macOS GitHub Actions
 
 ## Phase 1：本地健康核心
 
@@ -28,7 +29,8 @@
 ## Phase 3：官方服务端
 
 - [ ] App Attest
-- [ ] 官方 AI 供应商路由
+- [x] 官方 AI 供应商路由
+- [x] 后台登录与加密 Provider 配置
 - [ ] 用量和额度
 - [ ] StoreKit Server Notifications V2
 - [ ] 食物目录版本发布

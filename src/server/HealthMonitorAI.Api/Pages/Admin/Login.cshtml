@@ -1,0 +1,25 @@
+@page "/admin/login"
+@model HealthMonitorAI.Api.Pages.Admin.LoginModel
+@{
+    ViewData["Title"] = "管理员登录";
+}
+
+<section class="login-card">
+    <p class="eyebrow">SERVER CONTROL</p>
+    <h1>管理员登录</h1>
+    <p class="muted">管理官方 AI 地址、模型和加密密钥。</p>
+
+    <div asp-validation-summary="ModelOnly" class="validation"></div>
+    <form method="post">
+        <input type="hidden" asp-for="ReturnUrl" />
+        <label asp-for="Username">用户名</label>
+        <input asp-for="Username" autocomplete="username" />
+        <span asp-validation-for="Username" class="validation"></span>
+
+        <label asp-for="Password">密码</label>
+        <input asp-for="Password" type="password" autocomplete="current-password" />
+        <span asp-validation-for="Password" class="validation"></span>
+
+        <button class="primary" type="submit">登录后台</button>
+    </form>
+</section>

@@ -1,0 +1,33 @@
+@page "/admin"
+@model HealthMonitorAI.Api.Pages.Admin.IndexModel
+@{
+    ViewData["Title"] = "服务概览";
+}
+
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">OVERVIEW</p>
+        <h1>服务概览</h1>
+        <p class="muted">这里只显示配置状态，不显示 API Key。</p>
+    </div>
+    <a class="primary button" asp-page="/Admin/Providers">配置 AI 服务</a>
+</div>
+
+<div class="metric-grid">
+    <article class="metric-card">
+        <span>官方 AI</span>
+        <strong class="@(Model.IsReady ? "ok" : "warn")">@(Model.IsReady ? "可用" : "未就绪")</strong>
+    </article>
+    <article class="metric-card">
+        <span>Provider</span>
+        <strong>@Model.ProviderName</strong>
+    </article>
+    <article class="metric-card">
+        <span>视觉模型</span>
+        <strong>@Model.VisionModel</strong>
+    </article>
+    <article class="metric-card">
+        <span>最后更新</span>
+        <strong>@Model.UpdatedAtText</strong>
+    </article>
+</div>

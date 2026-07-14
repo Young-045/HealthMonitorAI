@@ -1,0 +1,41 @@
+name: Server CI
+
+on:
+  push:
+    branches: [main, "agent/**"]
+    paths:
+      - "src/server/**"
+      - "HealthMonitorAI.slnx"
+      - "Directory.Build.props"
+      - "global.json"
+      - ".github/workflows/server-ci.yml"
+  pull_request:
+    paths:
+      - "src/server/**"
+      - "HealthMonitorAI.slnx"
+      - "Directory.Build.props"
+      - "global.json"
+      - ".github/workflows/server-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: server-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "src/server/**/*.csproj"
+      - name: Restore
+        run: dotnet restore HealthMonitorAI.slnx
+      - name: Build
+        run: dotnet build HealthMonitorAI.slnx --configuration Release --no-restore

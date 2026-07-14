@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - HealthMonitorAI</title>
+    <link rel="stylesheet" href="~/admin.css" asp-append-version="true" />
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" asp-page="/Admin/Index">HealthMonitorAI</a>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <nav>
+                <a asp-page="/Admin/Index">概览</a>
+                <a asp-page="/Admin/Providers">AI 服务</a>
+                <form method="post" asp-page="/Admin/Login" asp-page-handler="Logout">
+                    <button class="link-button" type="submit">退出</button>
+                </form>
+            </nav>
+        }
+    </header>
+    <main class="shell">
+        @RenderBody()
+    </main>
+</body>
+</html>

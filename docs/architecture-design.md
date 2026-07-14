@@ -204,7 +204,13 @@ AI 不直接改变分数。规则引擎先生成原因代码，例如 `LOW_SLEEP
 
 `AIRequestAudit` 只记录请求 ID、任务类型、模型、耗时、Token、图片字节数、状态和错误代码，不保存照片、正文、HealthKit 数据或完整模型响应。
 
-### 9.3 临时数据
+### 9.3 后台管理
+
+服务端提供受 Cookie 登录和 `Admin` 角色保护的 `/admin` 页面，用于启停官方 AI、配置 OpenAI 兼容 HTTPS 地址、模型名称和服务端 API Key。后台密码通过部署环境变量或密钥服务注入，不进入配置文件。Provider API Key 使用 Data Protection 加密后保存在服务端私有卷，接口和页面均不回显明文；生产环境必须持久化并保护 Data Protection key ring。
+
+该后台只控制官方服务端凭据。用户 BYOK 的地址和 API Key 仍由 App 保存在设备 Keychain，并直接连接用户指定的 AI Provider。
+
+### 9.4 临时数据
 
 - 优先在内存中处理上传图片；
 - 必须使用对象存储时采用私有 Bucket、随机对象名和不超过 15 分钟 TTL；
