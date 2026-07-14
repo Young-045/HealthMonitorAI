@@ -16,6 +16,8 @@ obj/
 !.env.example
 appsettings.Development.local.json
 App_Data/
+clients/apple/*.xcodeproj/
+clients/apple/build/
 *.p12
 *.mobileprovision
 

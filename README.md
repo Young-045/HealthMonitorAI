@@ -30,7 +30,7 @@ dotnet run --project src/server/HealthMonitorAI.Api
 
 运行后台前需通过环境变量设置至少 12 位的 `Admin__Password`，然后访问 `/admin`。官方 Provider API Key 只以加密形式保存在服务端 `App_Data`；用户自己的 BYOK Key 仍只在设备 Keychain。
 
-Apple 客户端需要在 macOS/Xcode 环境中创建最终 App Targets，并接入仓库中的 `HealthMonitorCore` Package。
+Apple 客户端已包含 XcodeGen 描述和最小 SwiftUI iPhone App。macOS 上执行 `xcodegen generate` 即可生成工程；当前 App 能申请 HealthKit 读取权限，并显示今日步数、活动能量和锻炼时间。
 
 ## 当前状态
 

@@ -3,10 +3,10 @@
 ## 当前自动化
 
 - `Server CI` 在 Ubuntu runner 上还原并以 Release 配置编译 ASP.NET Core 服务端。
-- `Apple Package CI` 在 `macos-15` runner 上编译并测试 `HealthMonitorCore` Swift Package。
+- `Apple Package CI` 在 `macos-15` runner 上编译并测试 `HealthMonitorCore` Swift Package，然后用 XcodeGen 生成工程并执行无签名的 iPhone 模拟器构建。
 - 两个工作流都采用只读仓库权限，并通过路径过滤减少无关运行。
 
-当前仓库还没有 `.xcodeproj` 或 `.xcworkspace`，因此现阶段 Actions 验证的是可复用 Swift 核心包，不会产出可安装的 iPhone 或 Watch App。
+仓库使用 `clients/apple/project.yml` 描述工程，不提交生成的 `.xcodeproj`。当前 Actions 会验证 iPhone App Target，但不会产出可安装 IPA；真机安装、Watch App 和正式签名仍属于后续阶段。
 
 ## 创建 Xcode 工程后的构建
 

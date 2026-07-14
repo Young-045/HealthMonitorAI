@@ -1,0 +1,42 @@
+name: HealthMonitorAI
+
+options:
+  bundleIdPrefix: com.young045
+  deploymentTarget:
+    iOS: "17.0"
+
+packages:
+  HealthMonitorCore:
+    path: Packages/HealthMonitorCore
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+
+targets:
+  HealthMonitorAI:
+    type: application
+    platform: iOS
+    sources:
+      - path: App/Sources
+    dependencies:
+      - package: HealthMonitorCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.young045.healthmonitorai
+        PRODUCT_NAME: HealthMonitorAI
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: App/HealthMonitorAI.entitlements
+        TARGETED_DEVICE_FAMILY: "1"
+
+schemes:
+  HealthMonitorAI:
+    build:
+      targets:
+        HealthMonitorAI: all
+    run:
+      config: Debug
+    archive:
+      config: Release

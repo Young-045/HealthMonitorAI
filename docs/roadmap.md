@@ -11,6 +11,8 @@
 
 ## Phase 1：本地健康核心
 
+- [x] 最小 SwiftUI iPhone App 和 XcodeGen 工程
+- [x] HealthKit 读取授权与今日活动摘要
 - [ ] HealthKit 权限与增量查询
 - [ ] SwiftData 本地模型
 - [ ] 营养计算引擎

@@ -30,3 +30,19 @@ jobs:
         run: xcodebuild -version
       - name: Build and test HealthMonitorCore
         run: swift test --package-path clients/apple/Packages/HealthMonitorCore
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        working-directory: clients/apple
+        run: xcodegen generate
+      - name: Build iPhone simulator app
+        working-directory: clients/apple
+        run: >-
+          xcodebuild
+          -project HealthMonitorAI.xcodeproj
+          -scheme HealthMonitorAI
+          -configuration Debug
+          -sdk iphonesimulator
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO
+          build
