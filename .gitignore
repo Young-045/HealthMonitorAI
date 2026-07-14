@@ -1,0 +1,29 @@
+# macOS / Xcode
+.DS_Store
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+appsettings.Development.local.json
+*.p12
+*.mobileprovision
+
+# IDE
+.vs/
+.vscode/
+.idea/
+
+# Logs and temporary files
+*.log
+tmp/
+artifacts/
