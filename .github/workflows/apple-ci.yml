@@ -2,7 +2,7 @@ name: Apple Package CI
 
 on:
   push:
-    branches: [main, "agent/**"]
+    branches: [main]
     paths:
       - "clients/apple/**"
       - "contracts/ai/**"

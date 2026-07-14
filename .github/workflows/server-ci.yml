@@ -2,7 +2,7 @@ name: Server CI
 
 on:
   push:
-    branches: [main, "agent/**"]
+    branches: [main]
     paths:
       - "src/server/**"
       - "HealthMonitorAI.slnx"
