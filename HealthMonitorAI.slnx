@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/server/">
+    <Project Path="src/server/HealthMonitorAI.Api/HealthMonitorAI.Api.csproj" />
+  </Folder>
+</Solution>

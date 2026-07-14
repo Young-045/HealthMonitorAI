@@ -10,6 +10,24 @@
 - 支持用户配置自己的 API Key 和兼容 AI 地址，密钥仅保存在设备 Keychain。
 - 没有 AI 或服务端不可用时，健康同步、手动记录和基础评分仍然可用。
 
+## 仓库结构
+
+- [`docs/architecture-design.md`](docs/architecture-design.md)：完整产品与技术设计；
+- [`docs/roadmap.md`](docs/roadmap.md)：阶段路线和任务清单；
+- `src/server/HealthMonitorAI.Api`：官方 AI 最小化网关；
+- `clients/apple/Packages/HealthMonitorCore`：iPhone/watchOS 共享 Swift Package；
+- `contracts/ai`：跨端 AI JSON Schema。
+
+## 本地构建
+
+```powershell
+dotnet restore HealthMonitorAI.slnx
+dotnet build HealthMonitorAI.slnx --no-restore
+dotnet run --project src/server/HealthMonitorAI.Api
+```
+
+Apple 客户端需要在 macOS/Xcode 环境中创建最终 App Targets，并接入仓库中的 `HealthMonitorCore` Package。
+
 ## 当前状态
 
-项目处于架构与 MVP 骨架阶段。详细设计参见后续 `docs` 文档。
+项目已进入架构与 MVP 骨架阶段。官方 AI Provider 尚未配置，调用餐食识别端点会明确返回 `503 AI_PROVIDER_NOT_CONFIGURED`。
