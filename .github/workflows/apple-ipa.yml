@@ -1,0 +1,82 @@
+name: Apple Temporary IPA
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/apple-ipa.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apple-temporary-ipa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-ipa:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show toolchain
+        run: xcodebuild -version
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        working-directory: clients/apple
+        run: xcodegen generate
+      - name: Build unsigned iPhone app
+        working-directory: clients/apple
+        run: >-
+          xcodebuild
+          -project HealthMonitorAI.xcodeproj
+          -scheme HealthMonitorAI
+          -configuration Release
+          -sdk iphoneos
+          -destination 'generic/platform=iOS'
+          -derivedDataPath "$PWD/build/DerivedData"
+          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGNING_REQUIRED=NO
+          build
+      - name: Package IPA for AltStore re-signing
+        working-directory: clients/apple
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          APP_PATH=$(find \
+            "$PWD/build/DerivedData/Build/Products/Release-iphoneos" \
+            -maxdepth 1 \
+            -name '*.app' \
+            -print \
+            -quit)
+
+          if [[ -z "$APP_PATH" ]]; then
+            echo 'No iPhone app bundle was produced.' >&2
+            exit 1
+          fi
+
+          PACKAGE_DIR="$PWD/build/package"
+          rm -rf "$PACKAGE_DIR"
+          mkdir -p "$PACKAGE_DIR/Payload"
+          cp -R "$APP_PATH" "$PACKAGE_DIR/Payload/"
+
+          codesign \
+            --force \
+            --sign - \
+            --entitlements "$PWD/App/HealthMonitorAI.entitlements" \
+            --timestamp=none \
+            "$PACKAGE_DIR/Payload/HealthMonitorAI.app"
+
+          cd "$PACKAGE_DIR"
+          ditto -c -k --sequesterRsrc --keepParent Payload HealthMonitorAI-unsigned.ipa
+          shasum -a 256 HealthMonitorAI-unsigned.ipa > HealthMonitorAI-unsigned.ipa.sha256
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HealthMonitorAI-AltStore-IPA
+          path: |
+            clients/apple/build/package/HealthMonitorAI-unsigned.ipa
+            clients/apple/build/package/HealthMonitorAI-unsigned.ipa.sha256
+          if-no-files-found: error
+          retention-days: 7

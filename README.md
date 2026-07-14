@@ -32,6 +32,8 @@ dotnet run --project src/server/HealthMonitorAI.Api
 
 Apple 客户端已包含 XcodeGen 描述和最小 SwiftUI iPhone App。macOS 上执行 `xcodegen generate` 即可生成工程；当前 App 能申请 HealthKit 读取权限，并显示今日步数、活动能量和锻炼时间。
 
+需要使用 AltStore 真机测试时，在 GitHub Actions 中手动运行 `Apple Temporary IPA`，下载 `HealthMonitorAI-AltStore-IPA` Artifact，解压后选择 `HealthMonitorAI-unsigned.ipa` 交给 AltStore 重新签名。
+
 ## 当前状态
 
 项目已进入架构与 MVP 骨架阶段。后台可配置 OpenAI 兼容的官方 AI Provider；未启用或未配置时，餐食识别端点会明确返回 `503 AI_PROVIDER_NOT_CONFIGURED`。GitHub Actions 已在 macOS runner 上编译并测试共享 Swift Package。
