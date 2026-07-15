@@ -5,7 +5,7 @@
 - `Server CI` 在 Ubuntu runner 上还原并以 Release 配置编译 ASP.NET Core 服务端。
 - `Apple Package CI` 在 `macos-15` runner 上编译并测试 `HealthMonitorCore` Swift Package，然后用 XcodeGen 生成工程并执行无签名的 iPhone 模拟器构建。
 - 两个工作流都采用只读仓库权限，并通过路径过滤减少无关运行。
-- `Apple Temporary IPA` 仅手动触发，生成供 AltStore 重新签名的 IPA，并将下载 Artifact 保留 7 天。
+- `Apple Temporary IPA` 在 Apple 客户端 PR 更新时自动运行，合并到默认分支后也可手动触发；它生成供 AltStore 重新签名的 IPA，并将下载 Artifact 保留 7 天。
 
 仓库使用 `clients/apple/project.yml` 描述工程，不提交生成的 `.xcodeproj`。常规 CI 只验证 App Target；手动 IPA 工作流会产出无开发者签名包，必须由 AltStore 使用用户自己的 Apple ID 重新签名后才能尝试安装。Watch App 和正式签名仍属于后续阶段。
 
