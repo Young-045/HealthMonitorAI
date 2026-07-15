@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 @main
 struct HealthMonitorAIApp: App {
@@ -8,6 +9,7 @@ struct HealthMonitorAIApp: App {
         WindowGroup {
             ContentView()
                 .environment(healthDashboard)
+                .modelContainer(for: MealRecord.self)
         }
     }
 }

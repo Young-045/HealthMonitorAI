@@ -2,7 +2,7 @@
 
 ## Phase 0：仓库与契约
 
-- [x] 创建私有 GitHub 仓库
+- [x] 创建 GitHub 仓库并调整为公共可见性
 - [x] 初始化 `main`
 - [x] 完成架构文档
 - [x] 建立 AI JSON Schema
@@ -14,10 +14,10 @@
 - [x] 最小 SwiftUI iPhone App 和 XcodeGen 工程
 - [x] HealthKit 读取授权与今日活动摘要
 - [ ] HealthKit 权限与增量查询
-- [ ] SwiftData 本地模型
+- [x] SwiftData 基础饮食模型
 - [ ] 营养计算引擎
 - [ ] 每日聚合与评分引擎
-- [ ] 手动饮食记录
+- [x] 手动饮食记录与今日营养汇总
 
 ## Phase 2：AI 与 BYOK
 

@@ -4,6 +4,20 @@ struct ContentView: View {
     @Environment(HealthDashboardModel.self) private var healthDashboard
 
     var body: some View {
+        TabView {
+            healthView
+                .tabItem {
+                    Label("健康", systemImage: "heart.fill")
+                }
+            MealsView()
+                .tabItem {
+                    Label("饮食", systemImage: "fork.knife")
+                }
+        }
+        .tint(.green)
+    }
+
+    private var healthView: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
@@ -83,7 +97,7 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("你的数据，由你掌控")
                 .font(.title2.bold())
-            Text("第一阶段先建立可靠的 HealthKit 本地读取通道，之后再叠加饮食和 AI 分析。")
+            Text("活动数据来自 Apple 健康；饮食记录保存在本机 SwiftData 数据库。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }

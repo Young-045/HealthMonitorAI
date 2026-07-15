@@ -30,7 +30,7 @@ dotnet run --project src/server/HealthMonitorAI.Api
 
 运行后台前需通过环境变量设置至少 12 位的 `Admin__Password`，然后访问 `/admin`。官方 Provider API Key 只以加密形式保存在服务端 `App_Data`；用户自己的 BYOK Key 仍只在设备 Keychain。
 
-Apple 客户端已包含 XcodeGen 描述和最小 SwiftUI iPhone App。macOS 上执行 `xcodegen generate` 即可生成工程；当前 App 能申请 HealthKit 读取权限，并显示今日步数、活动能量和锻炼时间。
+Apple 客户端已包含 XcodeGen 描述和最小 SwiftUI iPhone App。macOS 上执行 `xcodegen generate` 即可生成工程；当前 App 能申请 HealthKit 读取权限，显示今日步数、活动能量和锻炼时间，并通过 SwiftData 在本地记录饮食和汇总当日营养。
 
 需要使用 AltStore 真机测试时，在 GitHub Actions 中手动运行 `Apple Temporary IPA`，下载 `HealthMonitorAI-AltStore-IPA` Artifact，解压后选择 `HealthMonitorAI-unsigned.ipa` 交给 AltStore 重新签名。
 
