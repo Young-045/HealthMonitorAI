@@ -31,3 +31,5 @@ GitHub Actions Artifact 现在同时包含：
 - AltStore 重写后的 Bundle ID、Application ID 和 Team ID。
 
 如果 Artifact 中 HealthKit 为 `true`，而安装后进程或 profile 为 `false`，即可确认权限在 AltStore 的 App ID/provisioning/重签流程中丢失。
+
+诊断页通过底层 `SecTask` 符号读取当前进程 entitlement。该实现只用于侧载问题定位，正式 App Store 构建前必须移除，改由受控签名流水线和发布前 codesign 检查保证权限一致性。

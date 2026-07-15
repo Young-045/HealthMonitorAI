@@ -1,6 +1,29 @@
 import Foundation
 import Security
 
+private typealias SigningTaskReference = OpaquePointer
+
+@_silgen_name("SecTaskCreateFromSelf")
+private func SigningTaskCreateFromSelf(
+    _ allocator: CFAllocator?
+) -> SigningTaskReference?
+
+@_silgen_name("SecTaskCopySigningIdentifier")
+private func SigningTaskCopySigningIdentifier(
+    _ task: SigningTaskReference,
+    _ error: UnsafeMutablePointer<Unmanaged<CFError>?>?
+) -> CFString?
+
+@_silgen_name("SecTaskCopyValueForEntitlement")
+private func SigningTaskCopyValueForEntitlement(
+    _ task: SigningTaskReference,
+    _ entitlement: CFString,
+    _ error: UnsafeMutablePointer<Unmanaged<CFError>?>?
+) -> CFTypeRef?
+
+@_silgen_name("CFRelease")
+private func SigningDiagnosticsCFRelease(_ value: CFTypeRef)
+
 struct SigningDiagnostics: Equatable {
     let capturedAt: Date
     let bundleIdentifier: String
@@ -16,32 +39,15 @@ struct SigningDiagnostics: Equatable {
     let profileReadError: String?
 
     static func capture() -> SigningDiagnostics {
-        let task = SecTaskCreateFromSelf(nil)
-        let signingIdentifier = task.flatMap {
-            SecTaskCopySigningIdentifier($0, nil) as String?
-        }
-        let runtimeTeamIdentifier = task.flatMap {
-            SecTaskCopyValueForEntitlement(
-                $0,
-                "com.apple.developer.team-identifier" as CFString,
-                nil
-            ) as? String
-        }
-        let runtimeHealthKit = task.flatMap {
-            SecTaskCopyValueForEntitlement(
-                $0,
-                "com.apple.developer.healthkit" as CFString,
-                nil
-            ) as? Bool
-        } ?? false
+        let runtime = captureRuntimeEntitlements()
         let profile = EmbeddedProvisioningProfile.load()
 
         return SigningDiagnostics(
             capturedAt: Date(),
             bundleIdentifier: Bundle.main.bundleIdentifier ?? "unknown",
-            signingIdentifier: signingIdentifier,
-            runtimeTeamIdentifier: runtimeTeamIdentifier,
-            runtimeHealthKitEntitlement: runtimeHealthKit,
+            signingIdentifier: runtime.signingIdentifier,
+            runtimeTeamIdentifier: runtime.teamIdentifier,
+            runtimeHealthKitEntitlement: runtime.healthKit,
             embeddedProfilePresent: profile.isPresent,
             profileName: profile.name,
             profileApplicationIdentifier: profile.applicationIdentifier,
@@ -50,6 +56,36 @@ struct SigningDiagnostics: Equatable {
             profileExpirationDate: profile.expirationDate,
             profileReadError: profile.error
         )
+    }
+
+    private static func captureRuntimeEntitlements() -> (
+        signingIdentifier: String?,
+        teamIdentifier: String?,
+        healthKit: Bool
+    ) {
+        guard let task = SigningTaskCreateFromSelf(nil) else {
+            return (nil, nil, false)
+        }
+        defer {
+            SigningDiagnosticsCFRelease(unsafeBitCast(task, to: CFTypeRef.self))
+        }
+
+        let signingIdentifier = SigningTaskCopySigningIdentifier(task, nil) as String?
+        let teamIdentifier = SigningTaskCopyValueForEntitlement(
+            task,
+            "com.apple.developer.team-identifier" as CFString,
+            nil
+        ) as? String
+        let healthKitValue = SigningTaskCopyValueForEntitlement(
+            task,
+            "com.apple.developer.healthkit" as CFString,
+            nil
+        )
+        let healthKit = (healthKitValue as? NSNumber)?.boolValue
+            ?? (healthKitValue as? Bool)
+            ?? false
+
+        return (signingIdentifier, teamIdentifier, healthKit)
     }
 
     var conclusion: String {
