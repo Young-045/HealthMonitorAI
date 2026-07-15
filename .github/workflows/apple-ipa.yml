@@ -65,9 +65,27 @@ jobs:
           codesign \
             --force \
             --sign - \
+            --generate-entitlement-der \
             --entitlements "$PWD/App/HealthMonitorAI.entitlements" \
             --timestamp=none \
             "$PACKAGE_DIR/Payload/HealthMonitorAI.app"
+
+          codesign --verify --deep --strict "$PACKAGE_DIR/Payload/HealthMonitorAI.app"
+          codesign \
+            --display \
+            --entitlements - \
+            --xml \
+            "$PACKAGE_DIR/Payload/HealthMonitorAI.app" \
+            > "$PACKAGE_DIR/PreAltStoreEntitlements.plist"
+          codesign \
+            --display \
+            --verbose=4 \
+            "$PACKAGE_DIR/Payload/HealthMonitorAI.app" \
+            > "$PACKAGE_DIR/PreAltStoreSigningReport.txt" 2>&1
+
+          /usr/libexec/PlistBuddy \
+            -c 'Print :com.apple.developer.healthkit' \
+            "$PACKAGE_DIR/PreAltStoreEntitlements.plist"
 
           cd "$PACKAGE_DIR"
           ditto -c -k --sequesterRsrc --keepParent Payload HealthMonitorAI-unsigned.ipa
@@ -79,5 +97,7 @@ jobs:
           path: |
             clients/apple/build/package/HealthMonitorAI-unsigned.ipa
             clients/apple/build/package/HealthMonitorAI-unsigned.ipa.sha256
+            clients/apple/build/package/PreAltStoreEntitlements.plist
+            clients/apple/build/package/PreAltStoreSigningReport.txt
           if-no-files-found: error
           retention-days: 7

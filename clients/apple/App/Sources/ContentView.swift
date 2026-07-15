@@ -13,6 +13,10 @@ struct ContentView: View {
                 .tabItem {
                     Label("饮食", systemImage: "fork.knife")
                 }
+            SigningDiagnosticsView()
+                .tabItem {
+                    Label("诊断", systemImage: "stethoscope")
+                }
         }
         .tint(.green)
     }
