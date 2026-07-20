@@ -1,0 +1,48 @@
+name: Apple Package CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "clients/apple/**"
+      - "contracts/ai/**"
+      - ".github/workflows/apple-ci.yml"
+  pull_request:
+    paths:
+      - "clients/apple/**"
+      - "contracts/ai/**"
+      - ".github/workflows/apple-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apple-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  swift-package:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show toolchain
+        run: xcodebuild -version
+      - name: Build and test HealthMonitorCore
+        run: swift test --package-path clients/apple/Packages/HealthMonitorCore
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        working-directory: clients/apple
+        run: xcodegen generate
+      - name: Build iPhone simulator app
+        working-directory: clients/apple
+        run: >-
+          xcodebuild
+          -project HealthMonitorAI.xcodeproj
+          -scheme HealthMonitorAI
+          -configuration Debug
+          -sdk iphonesimulator
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO
+          build

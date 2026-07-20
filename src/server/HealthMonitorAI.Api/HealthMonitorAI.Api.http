@@ -1,0 +1,29 @@
+@baseUrl = https://localhost:7184
+
+### Liveness
+GET {{baseUrl}}/health
+
+### Public configuration
+GET {{baseUrl}}/v1/config
+
+### Official AI usage
+GET {{baseUrl}}/v1/ai/usage
+
+### Returns 503 until an official provider is configured
+POST {{baseUrl}}/v1/ai/meal-analysis
+Content-Type: application/json
+
+{
+  "requestId": "manual-test-001",
+  "locale": "zh-CN",
+  "description": "米饭150克，番茄炒蛋一份"
+}
+
+### Invalid request returns 400
+POST {{baseUrl}}/v1/ai/meal-analysis
+Content-Type: application/json
+
+{
+  "requestId": "manual-test-002",
+  "locale": "zh-CN"
+}

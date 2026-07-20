@@ -1,0 +1,61 @@
+@page "/admin/providers"
+@model HealthMonitorAI.Api.Pages.Admin.ProvidersModel
+@{
+    ViewData["Title"] = "AI 服务配置";
+}
+
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">AI PROVIDER</p>
+        <h1>官方 AI 服务</h1>
+        <p class="muted">配置加密保存在服务器，不会返回给 App 或写入日志。</p>
+    </div>
+</div>
+
+@if (TempData["Saved"] is string saved)
+{
+    <div class="notice success">@saved</div>
+}
+
+<div asp-validation-summary="ModelOnly" class="validation"></div>
+<form method="post" class="settings-card">
+    <label class="toggle-row">
+        <input asp-for="Input.Enabled" />
+        <span>启用官方 AI 服务</span>
+    </label>
+
+    <div class="form-grid">
+        <div>
+            <label asp-for="Input.ProviderName">Provider 名称</label>
+            <input asp-for="Input.ProviderName" />
+            <span asp-validation-for="Input.ProviderName" class="validation"></span>
+        </div>
+        <div>
+            <label asp-for="Input.BaseUrl">OpenAI 兼容基础地址</label>
+            <input asp-for="Input.BaseUrl" placeholder="https://api.example.com/v1/" />
+            <span asp-validation-for="Input.BaseUrl" class="validation"></span>
+        </div>
+        <div>
+            <label asp-for="Input.VisionModel">视觉模型</label>
+            <input asp-for="Input.VisionModel" placeholder="vision-model" />
+            <span asp-validation-for="Input.VisionModel" class="validation"></span>
+        </div>
+        <div>
+            <label asp-for="Input.TextModel">文字模型</label>
+            <input asp-for="Input.TextModel" placeholder="text-model" />
+            <span asp-validation-for="Input.TextModel" class="validation"></span>
+        </div>
+        <div class="span-two">
+            <label asp-for="Input.ApiKey">API Key</label>
+            <input asp-for="Input.ApiKey" type="password" autocomplete="new-password"
+                   placeholder="@(Model.ApiKeyConfigured ? "已配置；留空保持不变" : "输入 API Key")" />
+            <span class="field-note">当前状态：@(Model.ApiKeyConfigured ? "已加密保存" : "未配置")</span>
+            <span asp-validation-for="Input.ApiKey" class="validation"></span>
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <button class="primary" type="submit">保存加密配置</button>
+        <span class="muted">保存后 `/v1/config` 会反映服务可用状态。</span>
+    </div>
+</form>

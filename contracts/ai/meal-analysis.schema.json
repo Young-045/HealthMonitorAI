@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://healthmonitor.ai/contracts/meal-analysis/1.0",
+  "title": "MealAnalysisResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "requestId", "foods", "warnings", "model", "processingTimeMilliseconds"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "requestId": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "foods": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "estimatedWeightGrams", "weightRange", "confidence", "uncertainties"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "estimatedWeightGrams": { "type": "number", "minimum": 0, "maximum": 10000 },
+          "weightRange": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["minimumGrams", "maximumGrams"],
+            "properties": {
+              "minimumGrams": { "type": "number", "minimum": 0, "maximum": 10000 },
+              "maximumGrams": { "type": "number", "minimum": 0, "maximum": 10000 }
+            }
+          },
+          "cookingMethod": { "type": ["string", "null"], "maxLength": 100 },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "uncertainties": {
+            "type": "array",
+            "maxItems": 20,
+            "items": { "type": "string", "maxLength": 500 }
+          }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "maxItems": 20,
+      "items": { "type": "string", "maxLength": 500 }
+    },
+    "model": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "processingTimeMilliseconds": { "type": "integer", "minimum": 0, "maximum": 600000 }
+  }
+}
