@@ -17,6 +17,33 @@ import Testing
     #expect(object["description"] as? String == "米饭150克")
     #expect(object["heartRate"] == nil)
     #expect(object["sleep"] == nil)
+    #expect(object["healthSummary"] == nil)
+}
+
+@Test func mealRequestIncludesOnlyExplicitlyAuthorizedAggregateHealthSummary() throws {
+    let request = MealAnalysisRequest(
+        requestId: "test-health",
+        locale: "zh-CN",
+        description: "午餐",
+        image: nil,
+        healthSummary: MealHealthSummary(
+            steps: 6_000,
+            activeEnergyKilocalories: 320,
+            exerciseMinutes: nil,
+            recentSleepDayMinutes: 450
+        )
+    )
+
+    let data = try JSONEncoder().encode(request)
+    let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    let summary = try #require(object["healthSummary"] as? [String: Any])
+
+    #expect(summary["steps"] as? Int == 6_000)
+    #expect(summary["activeEnergyKilocalories"] as? Int == 320)
+    #expect(summary["recentSleepDayMinutes"] as? Int == 450)
+    #expect(summary["exerciseMinutes"] == nil)
+    #expect(summary["heartRate"] == nil)
+    #expect(summary["weight"] == nil)
 }
 
 @Test func mealAnalysisResultRoundTripsThroughJSON() throws {

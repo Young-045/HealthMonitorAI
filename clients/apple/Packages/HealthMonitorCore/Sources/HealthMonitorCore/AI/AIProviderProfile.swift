@@ -3,7 +3,25 @@ import Foundation
 public enum AIProviderKind: String, Codable, Sendable {
     case officialGateway
     case openAICompatible
+    case qwen
     case localRules
+}
+
+public enum QwenRegion: String, Codable, CaseIterable, Sendable {
+    case chinaBeijing
+    case singapore
+    case unitedStates
+
+    public var baseURL: URL {
+        switch self {
+        case .chinaBeijing:
+            URL(string: "https://dashscope.aliyuncs.com/compatible-mode/v1")!
+        case .singapore:
+            URL(string: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1")!
+        case .unitedStates:
+            URL(string: "https://dashscope-us.aliyuncs.com/compatible-mode/v1")!
+        }
+    }
 }
 
 public struct AIProviderProfile: Codable, Identifiable, Equatable, Sendable {
