@@ -34,7 +34,7 @@ struct NewMealView: View {
     @State private var previewHealthSummary: MealHealthSummary?
     @State private var matchedFoodItems: [MealFoodItem] = []
     @State private var confirmedWeightInputs: [Int: String] = [:]
-    @State private var confirmedLabelWeightInput = ""
+    @State private var confirmedLabelAmountInput = ""
     @State private var authorityMatches: [Int: AuthorityFoodCatalogItem] = [:]
     private let healthKitWriter = HealthKitNutritionWriter()
     private let providerSecrets = AIProviderSecretCoordinator()
@@ -277,7 +277,7 @@ struct NewMealView: View {
 
         if let label = result.nutritionLabel, label.present {
             VStack(alignment: .leading, spacing: 6) {
-                Text("检测到营养成分表 · \(nutritionBasisText(label.basis))")
+                Text("检测到营养成分表 · \(nutritionBasisText(label))")
                     .font(.subheadline)
                     .fontWeight(.semibold)
                 labelValue("热量", value: label.energyKilocalories, unit: "千卡")
@@ -285,13 +285,13 @@ struct NewMealView: View {
                 labelValue("碳水", value: label.carbohydrateGrams, unit: "克")
                 labelValue("脂肪", value: label.fatGrams, unit: "克")
                 HStack {
-                    Text("确认实际摄入重量")
+                    Text(labelConsumptionTitle(label))
                     Spacer()
-                    TextField("克", text: $confirmedLabelWeightInput)
+                    TextField(labelConsumptionUnit(label), text: $confirmedLabelAmountInput)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                         .frame(maxWidth: 90)
-                    Text("克").foregroundStyle(.secondary)
+                    Text(labelConsumptionUnit(label)).foregroundStyle(.secondary)
                 }
                 if !label.unreadableFields.isEmpty {
                     Text("未能读清：\(label.unreadableFields.joined(separator: "、"))")
@@ -368,7 +368,7 @@ struct NewMealView: View {
         matchedFoodItems = []
         authorityMatches = [:]
         confirmedWeightInputs = [:]
-        confirmedLabelWeightInput = ""
+        confirmedLabelAmountInput = ""
         aiErrorMessage = nil
         defer { isAnalyzing = false }
         do {
@@ -387,7 +387,7 @@ struct NewMealView: View {
                 healthSummary: previewHealthSummary
             ))
             aiResult = result
-            confirmedLabelWeightInput = defaultConsumedWeightText(for: result) ?? ""
+            confirmedLabelAmountInput = defaultConsumedAmountText(for: result) ?? ""
             confirmedWeightInputs = Dictionary(uniqueKeysWithValues: result.foods.enumerated().map {
                 ($0.offset, decimalText($0.element.estimatedWeightGrams))
             })
@@ -485,17 +485,30 @@ struct NewMealView: View {
         _ label: RecognizedNutritionLabel,
         result: MealAnalysisResult
     ) {
-        guard let consumedWeight = parsedDecimal(confirmedLabelWeightInput) else {
-            aiErrorMessage = NutritionLabelCalculationError.invalidConsumedWeight.localizedDescription
+        guard let consumedAmount = parsedDecimal(confirmedLabelAmountInput) else {
+            aiErrorMessage = label.basis == .per100g
+                ? NutritionLabelCalculationError.invalidConsumedWeight.localizedDescription
+                : NutritionLabelCalculationError.invalidConsumedBasisCount.localizedDescription
             return
         }
 
         do {
-            var calculated = try NutritionLabelCalculator.calculate(
-                label: label,
-                package: result.package,
-                consumedWeightGrams: consumedWeight
-            )
+            var calculated: CalculatedLabelNutrition
+            switch label.basis {
+            case .per100g:
+                calculated = try NutritionLabelCalculator.calculate(
+                    label: label,
+                    package: result.package,
+                    consumedWeightGrams: consumedAmount
+                )
+            case .perServing, .perPackage:
+                calculated = try NutritionLabelCalculator.calculate(
+                    label: label,
+                    consumedBasisCount: consumedAmount
+                )
+            case .unknown:
+                throw NutritionLabelCalculationError.missingReferenceWeight
+            }
             var additionalWarning: String?
             if !result.foods.isEmpty {
                 let matches = result.foods.enumerated().compactMap {
@@ -538,8 +551,8 @@ struct NewMealView: View {
             matchedFoodItems = []
 
             var notes = [
-                "营养成分表：\(nutritionBasisText(label.basis))",
-                "实际摄入 \(decimalText(consumedWeight)) 克"
+                "营养成分表：\(nutritionBasisText(label))",
+                "\(labelConsumptionTitle(label)) \(decimalText(consumedAmount)) \(labelConsumptionUnit(label))"
             ]
             if let netWeight = result.package?.netWeightGrams {
                 notes.append("包装净含量 \(decimalText(netWeight)) 克")
@@ -610,11 +623,19 @@ struct NewMealView: View {
         primary.map { $0 + additional }
     }
 
-    private func defaultConsumedWeightText(for result: MealAnalysisResult) -> String? {
-        let weight = result.package?.drainedWeightGrams
-            ?? result.package?.netWeightGrams
-            ?? result.package?.servingSizeGrams
-        return weight.map(decimalText)
+    private func defaultConsumedAmountText(for result: MealAnalysisResult) -> String? {
+        guard let label = result.nutritionLabel else { return nil }
+        switch label.basis {
+        case .per100g:
+            let weight = result.package?.drainedWeightGrams
+                ?? result.package?.netWeightGrams
+                ?? result.package?.servingSizeGrams
+            return weight.map(decimalText)
+        case .perServing, .perPackage:
+            return label.basisQuantity.map(decimalText) ?? "1"
+        case .unknown:
+            return nil
+        }
     }
 
     private func confirmAIResultTitle(_ result: MealAnalysisResult) -> String {
@@ -624,12 +645,35 @@ struct NewMealView: View {
         return allFoodsMatch(result) ? "确认并用本地营养计算" : "回填名称与重量备注"
     }
 
-    private func nutritionBasisText(_ basis: NutritionLabelBasis) -> String {
-        switch basis {
+    private func nutritionBasisText(_ label: RecognizedNutritionLabel) -> String {
+        if let description = label.basisDescription?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+           !description.isEmpty {
+            return description
+        }
+        return switch label.basis {
         case .per100g: "每 100 克"
         case .perServing: "每份"
         case .perPackage: "每包装"
         case .unknown: "计量依据未读清"
+        }
+    }
+
+    private func labelConsumptionTitle(_ label: RecognizedNutritionLabel) -> String {
+        switch label.basis {
+        case .per100g: "确认实际摄入重量"
+        case .perServing: "确认实际摄入数量"
+        case .perPackage: "确认实际摄入包装数"
+        case .unknown: "确认实际摄入量"
+        }
+    }
+
+    private func labelConsumptionUnit(_ label: RecognizedNutritionLabel) -> String {
+        switch label.basis {
+        case .per100g: "克"
+        case .perServing: label.basisUnit ?? "份"
+        case .perPackage: label.basisUnit ?? "包装"
+        case .unknown: ""
         }
     }
 

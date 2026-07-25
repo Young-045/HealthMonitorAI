@@ -18,6 +18,12 @@ internal sealed class OpenAiCompatibleAiGateway(
            net weight, drained weight, serving size, and servings per package.
         2. Transcribe only clearly readable values with their printed basis and units.
            Never infer missing digits, convert units, derive values, or replace unreadable values with zero.
+           Japanese basis rules: "100g当たり" is per100g; "1食当たり", "1個当たり",
+           "1本当たり", and "1枚当たり" are perServing; "1包装当たり", "1袋当たり",
+           and "1パック当たり" are perPackage when they refer to the whole sold package.
+           Preserve the exact phrase as basisDescription, the leading number as basisQuantity,
+           and the counter such as 食, 個, 本, 枚, 包装, 袋, or パック as basisUnit.
+           If the package relationship is ambiguous, use unknown and add a warning.
         3. Then identify foods. Food visible through transparent packaging is the packaged
            product and must not also appear in foods. foods contains only separate foods outside it.
         4. If no package or label exists, analyze the ordinary meal and estimate weights conservatively.
@@ -28,6 +34,7 @@ internal sealed class OpenAiCompatibleAiGateway(
         package is null or contains netWeightGrams, drainedWeightGrams, servingSizeGrams,
         servingsPerPackage, and confidence. Use null for package values that are not clearly readable.
         nutritionLabel contains present, basis (per100g, perServing, perPackage, or unknown),
+        basisDescription, basisQuantity, basisUnit,
         energyKilocalories, energyKilojoules, proteinGrams, carbohydrateGrams, fatGrams,
         fiberGrams, sugarGrams, sodiumMilligrams, saltEquivalentGrams, rawText,
         unreadableFields, and confidence. Use null for unreadable values.
@@ -118,6 +125,9 @@ internal sealed class OpenAiCompatibleAiGateway(
             NutritionLabel: output.NutritionLabel is null ? null : new RecognizedNutritionLabelResponse(
                 output.NutritionLabel.Present,
                 output.NutritionLabel.Basis,
+                output.NutritionLabel.BasisDescription,
+                output.NutritionLabel.BasisQuantity,
+                output.NutritionLabel.BasisUnit,
                 output.NutritionLabel.EnergyKilocalories,
                 output.NutritionLabel.EnergyKilojoules,
                 output.NutritionLabel.ProteinGrams,
@@ -270,6 +280,9 @@ internal sealed class OpenAiCompatibleAiGateway(
             };
             if (!bases.Contains(output.NutritionLabel.Basis)
                 || !ValidConfidence(output.NutritionLabel.Confidence)
+                || !ValidOptionalText(output.NutritionLabel.BasisDescription, 100)
+                || !ValidOptionalMeasurement(output.NutritionLabel.BasisQuantity, 1_000)
+                || !ValidOptionalText(output.NutritionLabel.BasisUnit, 30)
                 || nutrients.Any(value => !ValidOptionalMeasurement(value, 1_000_000))
                 || output.NutritionLabel.UnreadableFields is null
                 || output.NutritionLabel.UnreadableFields.Count > 30
@@ -327,6 +340,9 @@ internal sealed class OpenAiCompatibleAiGateway(
     private sealed record MealModelNutritionLabel(
         bool Present,
         string Basis,
+        string? BasisDescription,
+        decimal? BasisQuantity,
+        string? BasisUnit,
         decimal? EnergyKilocalories,
         decimal? EnergyKilojoules,
         decimal? ProteinGrams,

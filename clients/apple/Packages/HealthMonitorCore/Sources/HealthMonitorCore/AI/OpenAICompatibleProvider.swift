@@ -274,6 +274,9 @@ public struct OpenAICompatibleProvider: AIProvider {
             ]
             guard validConfidence(label.confidence),
                   nutrientValues.allSatisfy({ validOptionalMeasurement($0, maximum: 1_000_000) }),
+                  validOptionalText(label.basisDescription, maximumLength: 100),
+                  validOptionalMeasurement(label.basisQuantity, maximum: 1_000),
+                  validOptionalText(label.basisUnit, maximumLength: 30),
                   label.unreadableFields.count <= 30,
                   label.unreadableFields.allSatisfy({ $0.count <= 100 }),
                   validOptionalText(label.rawText, maximumLength: 4_000) else {
@@ -364,6 +367,11 @@ public struct OpenAICompatibleProvider: AIProvider {
     Analyze the image in this strict order:
     1. Inspect visible text and determine whether a nutrition facts table, net weight, drained weight, serving size, servings per package, product name, brand, or barcode is visible.
     2. Transcribe only clearly readable packaging and nutrition values. Preserve their printed basis and units. Never infer missing digits, convert units, derive values, or fill unreadable fields with zero.
+       Japanese basis rules:
+       - "100g当たり" means per100g.
+       - "1食当たり", "1個当たり", "1本当たり", and "1枚当たり" mean perServing.
+       - "1包装当たり", "1袋当たり", and "1パック当たり" mean perPackage when they refer to the whole sold package.
+       Store the exact printed phrase in basisDescription, its leading numeric quantity in basisQuantity, and the printed counter such as "食", "個", "本", "枚", "包装", "袋", or "パック" in basisUnit. If the package relationship is ambiguous, use basis unknown and add a warning.
     3. Only then identify visible foods. Food visible through transparent packaging is the packaged product and MUST NOT also be returned in foods. foods contains only additional, separately consumable foods outside that package.
     4. If no package or nutrition label is present, analyze the image as an ordinary meal and estimate food weights conservatively.
 
@@ -388,6 +396,9 @@ public struct OpenAICompatibleProvider: AIProvider {
       "nutritionLabel": {
         "present": boolean,
         "basis": "per100g|perServing|perPackage|unknown",
+        "basisDescription": string or null,
+        "basisQuantity": number or null,
+        "basisUnit": string or null,
         "energyKilocalories": number or null,
         "energyKilojoules": number or null,
         "proteinGrams": number or null,

@@ -54,6 +54,36 @@ import Testing
     }
 }
 
+@Test func nutritionLabelCalculatorScalesJapanesePerPackageBasisByPackageCount() throws {
+    let label = RecognizedNutritionLabel(
+        present: true,
+        basis: .perPackage,
+        basisDescription: "1包装当たり",
+        basisQuantity: 1,
+        basisUnit: "包装",
+        energyKilocalories: 240,
+        proteinGrams: 12,
+        carbohydrateGrams: 30,
+        fatGrams: 8,
+        fiberGrams: nil,
+        sugarGrams: nil,
+        sodiumMilligrams: 500,
+        rawText: "栄養成分表示 1包装当たり",
+        unreadableFields: [],
+        confidence: 0.97
+    )
+
+    let result = try NutritionLabelCalculator.calculate(
+        label: label,
+        consumedBasisCount: Decimal(string: "0.5")!
+    )
+
+    #expect(result.energyKilocalories == 120)
+    #expect(result.proteinGrams == 6)
+    #expect(result.carbohydrateGrams == 15)
+    #expect(result.fatGrams == 4)
+}
+
 private func label(basis: NutritionLabelBasis) -> RecognizedNutritionLabel {
     RecognizedNutritionLabel(
         present: true,

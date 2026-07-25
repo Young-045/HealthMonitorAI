@@ -3,6 +3,7 @@ import Foundation
 public enum NutritionLabelCalculationError: LocalizedError, Equatable, Sendable {
     case labelNotPresent
     case invalidConsumedWeight
+    case invalidConsumedBasisCount
     case missingReferenceWeight
 
     public var errorDescription: String? {
@@ -11,6 +12,8 @@ public enum NutritionLabelCalculationError: LocalizedError, Equatable, Sendable 
             "没有可用的营养成分表。"
         case .invalidConsumedWeight:
             "实际摄入重量必须在 0 到 20000 克之间。"
+        case .invalidConsumedBasisCount:
+            "实际摄入份数或包装数必须大于 0。"
         case .missingReferenceWeight:
             "无法确定营养表对应的每份或每包装重量。"
         }
@@ -77,7 +80,40 @@ public enum NutritionLabelCalculator {
             throw NutritionLabelCalculationError.missingReferenceWeight
         }
 
-        let factor = consumedWeightGrams / referenceWeight
+        return calculatedNutrition(
+            label: label,
+            factor: consumedWeightGrams / referenceWeight
+        )
+    }
+
+    public static func calculate(
+        label: RecognizedNutritionLabel,
+        consumedBasisCount: Decimal
+    ) throws -> CalculatedLabelNutrition {
+        guard label.present else {
+            throw NutritionLabelCalculationError.labelNotPresent
+        }
+        guard consumedBasisCount > 0, consumedBasisCount <= 1_000 else {
+            throw NutritionLabelCalculationError.invalidConsumedBasisCount
+        }
+        guard label.basis == .perServing || label.basis == .perPackage else {
+            throw NutritionLabelCalculationError.missingReferenceWeight
+        }
+        let printedBasisCount = label.basisQuantity ?? 1
+        guard printedBasisCount > 0, printedBasisCount <= 1_000 else {
+            throw NutritionLabelCalculationError.invalidConsumedBasisCount
+        }
+
+        return calculatedNutrition(
+            label: label,
+            factor: consumedBasisCount / printedBasisCount
+        )
+    }
+
+    private static func calculatedNutrition(
+        label: RecognizedNutritionLabel,
+        factor: Decimal
+    ) -> CalculatedLabelNutrition {
         let printedEnergyKilocalories = label.energyKilocalories
             ?? label.energyKilojoules.map { $0 / Decimal(string: "4.184")! }
 

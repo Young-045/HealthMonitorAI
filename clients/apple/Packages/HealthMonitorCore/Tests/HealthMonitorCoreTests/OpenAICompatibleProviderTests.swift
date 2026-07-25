@@ -108,7 +108,7 @@ import Testing
 
 @Test func providerUsesVisionModelAndEncodesImageAsDataURL() async throws {
     let payload = """
-    {"schemaVersion":"2.0","requestId":"image-1","imageType":"nutritionLabelWithVisibleFood","product":{"name":"鸡胸肉","brand":null,"barcode":null,"confidence":0.96},"package":{"netWeightGrams":120,"drainedWeightGrams":null,"servingSizeGrams":60,"servingsPerPackage":2,"confidence":0.95},"nutritionLabel":{"present":true,"basis":"per100g","energyKilocalories":110,"energyKilojoules":null,"proteinGrams":23.5,"carbohydrateGrams":1.2,"fatGrams":1.8,"fiberGrams":null,"sugarGrams":null,"sodiumMilligrams":380,"saltEquivalentGrams":null,"rawText":"每100克","unreadableFields":[],"confidence":0.94},"foods":[],"warnings":[]}
+    {"schemaVersion":"2.0","requestId":"image-1","imageType":"nutritionLabelWithVisibleFood","product":{"name":"鸡胸肉","brand":null,"barcode":null,"confidence":0.96},"package":{"netWeightGrams":120,"drainedWeightGrams":null,"servingSizeGrams":60,"servingsPerPackage":2,"confidence":0.95},"nutritionLabel":{"present":true,"basis":"perPackage","basisDescription":"1包装当たり","basisQuantity":1,"basisUnit":"包装","energyKilocalories":110,"energyKilojoules":null,"proteinGrams":23.5,"carbohydrateGrams":1.2,"fatGrams":1.8,"fiberGrams":null,"sugarGrams":null,"sodiumMilligrams":380,"saltEquivalentGrams":null,"rawText":"1包装当たり","unreadableFields":[],"confidence":0.94},"foods":[],"warnings":[]}
     """
     let escapedPayload = try JSONEncoder().encode(payload)
     let content = String(decoding: escapedPayload, as: UTF8.self)
@@ -144,12 +144,16 @@ import Testing
     #expect(result.imageType == .nutritionLabelWithVisibleFood)
     #expect(result.product?.name == "鸡胸肉")
     #expect(result.package?.netWeightGrams == 120)
-    #expect(result.nutritionLabel?.basis == .per100g)
+    #expect(result.nutritionLabel?.basis == .perPackage)
+    #expect(result.nutritionLabel?.basisDescription == "1包装当たり")
+    #expect(result.nutritionLabel?.basisQuantity == 1)
+    #expect(result.nutritionLabel?.basisUnit == "包装")
     #expect(result.foods.isEmpty)
 
     let systemPrompt = try #require(messages.first?["content"] as? String)
     #expect(systemPrompt.contains("Inspect visible text"))
     #expect(systemPrompt.contains("MUST NOT also be returned in foods"))
+    #expect(systemPrompt.contains("1包装当たり"))
 }
 
 @Test func providerRejectsUnsupportedImageBeforeSending() async throws {

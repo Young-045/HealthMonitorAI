@@ -147,6 +147,9 @@ public enum NutritionLabelBasis: String, Codable, Equatable, Sendable {
 public struct RecognizedNutritionLabel: Codable, Equatable, Sendable {
     public let present: Bool
     public let basis: NutritionLabelBasis
+    public let basisDescription: String?
+    public let basisQuantity: Decimal?
+    public let basisUnit: String?
     public let energyKilocalories: Decimal?
     public let energyKilojoules: Decimal?
     public let proteinGrams: Decimal?
@@ -163,6 +166,9 @@ public struct RecognizedNutritionLabel: Codable, Equatable, Sendable {
     public init(
         present: Bool,
         basis: NutritionLabelBasis,
+        basisDescription: String? = nil,
+        basisQuantity: Decimal? = nil,
+        basisUnit: String? = nil,
         energyKilocalories: Decimal?,
         energyKilojoules: Decimal? = nil,
         proteinGrams: Decimal?,
@@ -178,6 +184,9 @@ public struct RecognizedNutritionLabel: Codable, Equatable, Sendable {
     ) {
         self.present = present
         self.basis = basis
+        self.basisDescription = basisDescription
+        self.basisQuantity = basisQuantity
+        self.basisUnit = basisUnit
         self.energyKilocalories = energyKilocalories
         self.energyKilojoules = energyKilojoules
         self.proteinGrams = proteinGrams

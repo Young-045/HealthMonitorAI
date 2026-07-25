@@ -62,6 +62,9 @@ public sealed record MealPackageInformationResponse(
 public sealed record RecognizedNutritionLabelResponse(
     bool Present,
     string Basis,
+    string? BasisDescription,
+    decimal? BasisQuantity,
+    string? BasisUnit,
     decimal? EnergyKilocalories,
     decimal? EnergyKilojoules,
     decimal? ProteinGrams,
