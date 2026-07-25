@@ -1,0 +1,70 @@
+{
+  "catalogVersion": "2026-04+pipeline.1",
+  "checks": {
+    "missingValuesPreserved": true,
+    "noNegativeNutrients": true,
+    "sqliteIntegrityCheck": "ok",
+    "stableIdsUnique": true
+  },
+  "files": {
+    "catalog-core.sqlite": {
+      "bytes": 3510272,
+      "sha256": "2dc5b0be8fac83f7323f53802fccbdf6ce4762615fe961b8c87ebf0e91ece1fe"
+    },
+    "catalog.ndjson": {
+      "bytes": 3983238,
+      "sha256": "8997d7321f218a3d8f622b8e0c2261ade83b3f7e584fdafb103d6c04a67e107d"
+    },
+    "food-nutrients.csv": {
+      "bytes": 831877,
+      "sha256": "8f5f7a0960b6573a6aa82d19d53089ea20aa5b2622a71829d461978d89e96ffe"
+    },
+    "foods.csv": {
+      "bytes": 445210,
+      "sha256": "7d0f20694e2248dbab289754ec49745649cf863313b6742e6ae03044cd05f3c0"
+    },
+    "validation-report.json": {
+      "bytes": 530,
+      "sha256": "14b15cd393d64e477b39bb8468e020406d4e33e4fd9a2368e59ba146f58ba9cb"
+    }
+  },
+  "foodCount": 2841,
+  "generatedAt": "2026-07-25T12:54:13.319361+00:00",
+  "nutrientValueCounts": {
+    "carbohydrate_g": 2723,
+    "energy_kcal": 2799,
+    "fat_g": 2742,
+    "fiber_g": 2524,
+    "protein_g": 2807,
+    "sodium_mg": 2710,
+    "sugars_g": 136
+  },
+  "pipelineVersion": "1",
+  "schemaVersion": 1,
+  "sourceCounts": {
+    "mext-2020": 2478,
+    "usda-foundation": 363
+  },
+  "sources": [
+    {
+      "code": "usda-foundation",
+      "format": "json-zip",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://fdc.nal.usda.gov/api-guide/",
+      "name": "USDA FoodData Central Foundation Foods",
+      "sha256": "186e988ec542e913f51ef62b86a47758e8cdd0d1dc3889e7b055581f3c09c77a",
+      "url": "https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_foundation_food_json_2026-04-30.zip",
+      "version": "2026-04"
+    },
+    {
+      "code": "mext-2020",
+      "format": "xlsx",
+      "license": "Government of Japan Standard Terms of Use 2.0",
+      "licenseUrl": "https://www.mext.go.jp/b_menu/1351168.htm",
+      "name": "Standard Tables of Food Composition in Japan 2020 (Eighth Revised Edition)",
+      "sha256": "ae54da2f99900300f9c9834947bb952690c3798d411b9ed5ba95711019410c4d",
+      "url": "https://www.mext.go.jp/content/20201225-mxt_kagsei-mext_01110_012.xlsx",
+      "version": "2020-8th-revision-corrected-2021-12-28"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 # macOS / Xcode
 .DS_Store
 DerivedData/
+.build/
 *.xcuserstate
 xcuserdata/
 
@@ -30,3 +31,10 @@ clients/apple/build/
 *.log
 tmp/
 artifacts/
+__pycache__/
+*.py[cod]
+
+# Generated food composition data
+data/raw/
+data/work/
+data/releases/

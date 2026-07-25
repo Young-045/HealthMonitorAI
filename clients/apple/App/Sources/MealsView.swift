@@ -7,6 +7,7 @@ struct MealsView: View {
 
     @State private var isPresentingNewMeal = false
     @State private var storageError: String?
+    private let healthKitWriter = HealthKitNutritionWriter()
 
     private var todayMeals: [MealRecord] {
         meals.filter { Calendar.autoupdatingCurrent.isDateInToday($0.eatenAt) }
@@ -57,12 +58,20 @@ struct MealsView: View {
             }
             .navigationTitle("饮食记录")
             .toolbar {
-                Button {
-                    isPresentingNewMeal = true
-                } label: {
-                    Image(systemName: "plus")
+                ToolbarItemGroup(placement: .primaryAction) {
+                    NavigationLink {
+                        FoodCatalogView()
+                    } label: {
+                        Image(systemName: "books.vertical")
+                    }
+                    .accessibilityLabel("本地食物目录")
+                    Button {
+                        isPresentingNewMeal = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel("添加饮食记录")
                 }
-                .accessibilityLabel("添加饮食记录")
             }
             .sheet(isPresented: $isPresentingNewMeal) {
                 NewMealView()
@@ -84,12 +93,21 @@ struct MealsView: View {
 
     private func deleteButton(for meal: MealRecord) -> some View {
         Button("删除", role: .destructive) {
+            Task { await delete(meal) }
+        }
+    }
+
+    @MainActor
+    private func delete(_ meal: MealRecord) async {
+        do {
+            try await MealHealthKitSyncCoordinator.deleteHealthSamples(
+                for: meal,
+                using: healthKitWriter
+            )
             modelContext.delete(meal)
-            do {
-                try modelContext.save()
-            } catch {
-                storageError = error.localizedDescription
-            }
+            try modelContext.save()
+        } catch {
+            storageError = "未删除餐食：\(error.localizedDescription)"
         }
     }
 }

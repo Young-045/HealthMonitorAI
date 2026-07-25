@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "code": "usda-foundation",
+      "name": "USDA FoodData Central Foundation Foods",
+      "version": "2026-04",
+      "format": "json-zip",
+      "url": "https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_foundation_food_json_2026-04-30.zip",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://fdc.nal.usda.gov/api-guide/",
+      "sha256": "186e988ec542e913f51ef62b86a47758e8cdd0d1dc3889e7b055581f3c09c77a"
+    },
+    {
+      "code": "mext-2020",
+      "name": "Standard Tables of Food Composition in Japan 2020 (Eighth Revised Edition)",
+      "version": "2020-8th-revision-corrected-2021-12-28",
+      "format": "xlsx",
+      "url": "https://www.mext.go.jp/content/20201225-mxt_kagsei-mext_01110_012.xlsx",
+      "license": "Government of Japan Standard Terms of Use 2.0",
+      "licenseUrl": "https://www.mext.go.jp/b_menu/1351168.htm",
+      "sha256": "ae54da2f99900300f9c9834947bb952690c3798d411b9ed5ba95711019410c4d"
+    }
+  ]
+}

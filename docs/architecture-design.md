@@ -116,6 +116,231 @@ HealthKitAnchor
 
 API Key、自定义 Secret Header 与令牌不进入 SwiftData、iCloud、日志或导出文件。
 
+### 5.5 权威食品成分离线目录
+
+首期权威食品数据以日本文部科学省《日本食品标准成分表》和 USDA FoodData Central 为主，不在 App 运行时逐条请求外部营养 API。官方数据在构建或发布阶段下载、校验、标准化并生成版本化只读 SQLite；App 随包携带基础版本，在无网络、无 AI 或外部数据源不可用时仍可完成搜索、匹配和营养计算。
+
+#### 5.5.1 首期数据源
+
+| 来源 | 首期范围 | 主要用途 | 获取与发布策略 |
+|---|---|---|---|
+| USDA FoodData Central | 首版 Foundation Foods；后续加入 FNDDS、精选 SR Legacy | 基础食材、英语名称、常见复合食物与份量 | 使用官方批量 JSON/CSV；数据按 CC0 使用并保留建议署名 |
+| 日本文部科学省 | 日本食品标准成分表 2020 年版（八订）及官方增补、订正 | 日本及亚洲常见食材、可食部与烹饪状态 | 使用官方 Excel；保存版本、原始食品编号、引用和使用规则 |
+
+USDA Branded Foods 数据量大、更新频繁且主要来自商品标签，首期不进入 App 基础包。后续如需要条码商品，采用独立可选数据包或按地区精选，不让品牌库显著增加 IPA 和本地索引体积。
+
+中国食物成分数据仍是后续重要方向，但只有在取得明确的批量使用和再分发许可后才接入正式发布管线；不得把网页抓取结果作为产品内置权威数据。
+
+#### 5.5.2 数据分层与发布流
+
+```mermaid
+flowchart LR
+    USDA[USDA 批量 JSON/CSV] --> Raw[不可变原始文件]
+    MEXT[MEXT 官方 Excel] --> Raw
+    Raw --> Adapter[来源适配器]
+    Adapter --> Normalize[统一字段、单位与口径]
+    Normalize --> Validate[结构、营养与黄金样本校验]
+    Validate --> SQLite[catalog-core.sqlite]
+    Validate --> CSV[审计 CSV]
+    Validate --> NDJSON[流式 NDJSON]
+    Validate --> Manifest[manifest + SHA-256 + 署名]
+    SQLite --> App[离线 iPhone App]
+    Manifest --> Update[可选版本更新]
+    Update --> App
+```
+
+数据分为三层：
+
+1. 原始层：保存官方下载文件、来源 URL、下载时间和 SHA-256，原始文件永不原地修改。
+2. 标准化层：将各来源的食品、名称、营养素、份量、可食部和加工状态映射到统一模型；保留所有来源代码和推导信息。
+3. 发布层：生成面向 App 的精简 SQLite，同时输出 CSV、NDJSON、许可及校验报告。CSV 和 NDJSON 用于审计、调试和再处理，不作为 App 主查询格式。
+
+建议仓库结构：
+
+```text
+tools/food-data/
+├── sources/
+│   ├── usda.py
+│   └── mext.py
+├── mappings/
+│   ├── nutrients.json
+│   ├── categories.json
+│   └── source-priority.json
+├── validation/
+├── fixtures/
+└── cli.py
+
+data/
+├── manifests/       # 可提交的小型来源和版本清单
+├── raw/             # 不提交大型原始文件
+├── work/            # 不提交标准化中间文件
+└── releases/        # CI Artifact 或对象存储
+```
+
+#### 5.5.3 统一数据模型
+
+只读目录至少包含以下逻辑表：
+
+```text
+DatasetRelease
+Food
+FoodName
+NutrientDefinition
+FoodNutrient
+FoodPortion
+FoodCrossReference
+```
+
+`DatasetRelease` 保存来源、源版本、发布日期、来源 URL、许可、原始文件哈希和 ETL 管线版本。`Food` 使用内部稳定 ID，同时保存 `sourceCode + sourceFoodId`，不得假设 USDA FDC ID 与 MEXT 食品编号属于同一命名空间。
+
+每条食品记录必须保留：
+
+- 规范名称、来源描述、多语言名称和别名；
+- 食品类别、生/熟/干制/泡发等状态及烹饪方式；
+- `edible_100g`、`as_sold_100g`、`100ml` 或 `serving` 等数据口径；
+- 可食部比例、默认份量和来源份量描述；
+- 来源记录 ID、来源发布版本和数据质量级别。
+
+首期规范营养键为：
+
+```text
+energy_kcal
+protein_g
+carbohydrate_g
+fat_g
+fiber_g
+sugars_g
+sodium_mg
+```
+
+同时保留来源营养素代码、原始单位、分析或推导方法。USDA Foundation Foods 可能同时提供不同 Atwater 方法的能量值，适配器必须执行显式、版本化的来源策略，不能仅凭名称取第一项，也不能覆盖原始值。
+
+“没有数据”和“检测结果为零”必须分开表示。标准库使用缺少 `FoodNutrient` 行或显式可用性标记表示缺失，不允许在导入时把缺失的糖、纤维或钠写成 `0`。关键宏量营养素不完整的记录可参与搜索，但不得无提示地参与完整营养自动计算。
+
+#### 5.5.4 来源冲突与选择规则
+
+不同国家、品种、季节、检测方法和烹饪状态产生的差异是食品成分数据的一部分，不对 USDA 和 MEXT 同名记录直接求平均，也不删除来源记录。候选排序按以下信息综合决定：
+
+1. 用户自建精确名称或别名；
+2. 用户地区和界面语言；
+3. 食品状态及烹饪方式精确匹配；
+4. 规范名称优先于别名；
+5. Foundation/MEXT 等分析数据优先于历史或标签推导数据；
+6. 数据完整度和发布时间；
+7. 稳定内部 ID，保证相同输入得到相同排序。
+
+生米与熟米饭、生肉与烤肉、干豆与煮豆、带骨购买重量与可食部重量不得自动互相替代。存在多个合理候选时由用户确认。
+
+#### 5.5.5 数据质量与可追溯性
+
+每次发布必须自动执行：
+
+- 主键、外键、来源 ID 和营养素映射完整性检查；
+- NaN、Infinity、负数和非法单位拒绝；
+- 克、毫克、千焦和千卡转换测试；
+- 零值与缺失值区分测试；
+- 可食部、每 100 克、每 100 毫升和每份口径检查；
+- 食品数量、营养覆盖率和异常值相对上一版的漂移报告；
+- 米饭、鸡蛋、鸡胸肉、牛奶、豆腐、苹果等固定黄金样本；
+- SQLite `integrity_check`、索引和 schema 版本检查；
+- 来源文件、发布文件 SHA-256、署名和许可清单检查。
+
+能量与宏量营养素的估算差异只生成告警，不擅自覆盖权威来源值。所有修正规则必须进入版本控制并能从发布版本追溯。
+
+发布版本采用 `数据日期 + 管线版本`，例如：
+
+```text
+catalogVersion: 2026.04+pipeline.1
+schemaVersion: 1
+sources:
+  usda-foundation: 2026-04
+  usda-fndds: 2021-2023
+  usda-sr-legacy: 2018-04
+  mext: 2020-8th-revision
+```
+
+#### 5.5.6 Apple 客户端存储与查询
+
+权威目录与用户数据分离：
+
+```text
+AuthorityFoodCatalogStore   只读 SQLite，保存 USDA/MEXT
+UserFoodCatalogStore        SwiftData，保存用户自建和用户覆盖
+CompositeFoodCatalog        合并查询并执行确定性候选排序
+MealFoodItem                SwiftData，保存用户确认时的营养快照
+```
+
+不得把数万条权威食品逐条写入 SwiftData，也不得通过 `@Query` 取出整个目录后线性扫描。SQLite 为名称、标准化名称、别名、来源 ID 和条码建立索引；中文、日文和英文检索使用预计算搜索键，必要时增加 CJK bigram 索引。
+
+匹配顺序为：
+
+```text
+条码精确匹配
+→ 规范名称精确匹配
+→ 别名精确匹配
+→ 多语言搜索键召回
+→ 地区、状态、来源质量和完整度排序
+→ 用户确认
+```
+
+只有高置信度精确匹配可以自动回填营养候选；模糊搜索只展示候选，不自动入账。AI 仍只提供食物名称、重量范围、烹饪方式和不确定项，不生成最终营养数字。
+
+现有餐食营养快照继续保留，并补充：
+
+```text
+sourceCodeSnapshot
+sourceFoodIdSnapshot
+sourceReleaseSnapshot
+nutrientAvailabilitySnapshot
+basisSnapshot
+foodStateSnapshot
+```
+
+目录更新不会重新计算或悄悄改变历史餐食。
+
+#### 5.5.7 初始安装与更新
+
+App Bundle 内置经过精简的 `catalog-core.sqlite`，保证首次启动和飞行模式可用。需要在线更新时，服务端只发布版本清单和静态数据包，不接收用户饮食或 HealthKit 数据：
+
+```http
+GET /v1/catalog/manifest
+GET /catalog/releases/{version}/catalog-core.sqlite.zst
+GET /catalog/releases/{version}/manifest.sig
+```
+
+客户端先下载到临时位置，再校验 SHA-256、签名、schema 兼容性和 SQLite `quick_check`，全部通过后原子切换当前版本，并保留上一个完整版本用于回滚。不得原地修改正在查询的数据库。首期可以只随 App Store 版本更新内置目录，远程更新接口在目录管线稳定后启用。
+
+Apple Watch 不复制完整食品库，由 iPhone 完成搜索、匹配和计算，只同步用户收藏、最近餐食及确认后的营养快照。
+
+#### 5.5.8 发布产物与验收标准
+
+每个版本生成：
+
+```text
+food-catalog-{version}/
+├── catalog-core.sqlite
+├── foods.csv
+├── food-nutrients.csv
+├── catalog.ndjson
+├── manifest.json
+├── LICENSES.json
+├── ATTRIBUTION.md
+└── validation-report.json
+```
+
+首期验收标准：
+
+- 飞行模式下可完成搜索、匹配、营养计算和餐食保存；
+- 每个展示或计算值可追溯到来源、原始食品 ID 和发布版本；
+- 缺失营养素不会被当成零；
+- 更新目录不会改变历史餐食；
+- 同一目录版本和相同查询得到确定性候选顺序；
+- SQLite 完整性检查和黄金样本全部通过；
+- 真机常用名称查询 P95 小于 50 毫秒；
+- 基础数据包以 30–100 MB 为目标，超出时按数据类型或地区拆包；
+- USDA、MEXT 的来源说明、许可或使用规则随发布产物保存；
+- 数据下载或更新失败时继续使用上一个完整版本。
+
 ## 6. AI 双通道
 
 ### 6.1 官方模式

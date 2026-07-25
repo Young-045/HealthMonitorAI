@@ -20,10 +20,12 @@ targets:
     platform: iOS
     sources:
       - path: App/Sources
-    resources:
       - path: App/Assets.xcassets
+      - path: App/Resources
+        buildPhase: resources
     dependencies:
       - package: HealthMonitorCore
+      - sdk: libsqlite3.tbd
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.young045.healthmonitorai
@@ -33,12 +35,27 @@ targets:
         CODE_SIGN_ENTITLEMENTS: App/HealthMonitorAI.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1"
+  HealthMonitorAITests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: App/Tests
+    dependencies:
+      - target: HealthMonitorAI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.young045.healthmonitorai.tests
+        GENERATE_INFOPLIST_FILE: YES
 
 schemes:
   HealthMonitorAI:
     build:
       targets:
         HealthMonitorAI: all
+        HealthMonitorAITests: [test]
+    test:
+      targets:
+        - HealthMonitorAITests
     run:
       config: Debug
     archive:

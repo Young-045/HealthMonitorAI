@@ -5,12 +5,39 @@ public struct MealAnalysisRequest: Codable, Equatable, Sendable {
     public let locale: String
     public let description: String?
     public let image: MealImage?
+    public let healthSummary: MealHealthSummary?
 
-    public init(requestId: String, locale: String, description: String?, image: MealImage?) {
+    public init(
+        requestId: String,
+        locale: String,
+        description: String?,
+        image: MealImage?,
+        healthSummary: MealHealthSummary? = nil
+    ) {
         self.requestId = requestId
         self.locale = locale
         self.description = description
         self.image = image
+        self.healthSummary = healthSummary
+    }
+}
+
+public struct MealHealthSummary: Codable, Equatable, Sendable {
+    public let steps: Int?
+    public let activeEnergyKilocalories: Int?
+    public let exerciseMinutes: Int?
+    public let recentSleepDayMinutes: Int?
+
+    public init(
+        steps: Int?,
+        activeEnergyKilocalories: Int?,
+        exerciseMinutes: Int?,
+        recentSleepDayMinutes: Int?
+    ) {
+        self.steps = steps
+        self.activeEnergyKilocalories = activeEnergyKilocalories
+        self.exerciseMinutes = exerciseMinutes
+        self.recentSleepDayMinutes = recentSleepDayMinutes
     }
 }
 
