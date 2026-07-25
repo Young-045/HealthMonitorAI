@@ -108,7 +108,7 @@ import Testing
 
 @Test func providerUsesVisionModelAndEncodesImageAsDataURL() async throws {
     let payload = """
-    {"schemaVersion":"1.0","requestId":"image-1","foods":[],"warnings":[]}
+    {"schemaVersion":"2.0","requestId":"image-1","imageType":"nutritionLabelWithVisibleFood","product":{"name":"鸡胸肉","brand":null,"barcode":null,"confidence":0.96},"package":{"netWeightGrams":120,"drainedWeightGrams":null,"servingSizeGrams":60,"servingsPerPackage":2,"confidence":0.95},"nutritionLabel":{"present":true,"basis":"per100g","energyKilocalories":110,"energyKilojoules":null,"proteinGrams":23.5,"carbohydrateGrams":1.2,"fatGrams":1.8,"fiberGrams":null,"sugarGrams":null,"sodiumMilligrams":380,"saltEquivalentGrams":null,"rawText":"每100克","unreadableFields":[],"confidence":0.94},"foods":[],"warnings":[]}
     """
     let escapedPayload = try JSONEncoder().encode(payload)
     let content = String(decoding: escapedPayload, as: UTF8.self)
@@ -125,7 +125,7 @@ import Testing
     )
     let provider = try QwenProvider(profile: profile, apiKey: "key", httpClient: client)
 
-    _ = try await provider.analyzeMeal(MealAnalysisRequest(
+    let result = try await provider.analyzeMeal(MealAnalysisRequest(
         requestId: "image-1",
         locale: "zh-CN",
         description: nil,
@@ -141,6 +141,15 @@ import Testing
     let imageURL = try #require(imagePart["image_url"] as? [String: String])
     #expect(imagePart["type"] as? String == "image_url")
     #expect(imageURL["url"] == "data:image/png;base64,iVBORw==")
+    #expect(result.imageType == .nutritionLabelWithVisibleFood)
+    #expect(result.product?.name == "鸡胸肉")
+    #expect(result.package?.netWeightGrams == 120)
+    #expect(result.nutritionLabel?.basis == .per100g)
+    #expect(result.foods.isEmpty)
+
+    let systemPrompt = try #require(messages.first?["content"] as? String)
+    #expect(systemPrompt.contains("Inspect visible text"))
+    #expect(systemPrompt.contains("MUST NOT also be returned in foods"))
 }
 
 @Test func providerRejectsUnsupportedImageBeforeSending() async throws {

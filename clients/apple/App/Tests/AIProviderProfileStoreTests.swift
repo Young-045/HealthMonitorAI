@@ -57,4 +57,59 @@ final class AIProviderProfileStoreTests: XCTestCase {
         XCTAssertFalse(json.localizedCaseInsensitiveContains("authorization"))
         XCTAssertTrue(AIProviderSecretCoordinator.account(profileID: profile.id).hasPrefix("qwen."))
     }
+
+    func testLegacyQwenProfileGetsDefaultVisionModel() throws {
+        let suiteName = "AIProviderProfileStoreTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let profile = AIProviderProfile(
+            displayName: "旧版 Qwen",
+            kind: .qwen,
+            baseURL: QwenRegion.chinaBeijing.baseURL,
+            visionModel: nil,
+            textModel: "qwen3.7-plus"
+        )
+        let legacySnapshot = LegacySnapshot(profiles: [profile], activeProfileID: profile.id)
+        defaults.set(
+            try JSONEncoder().encode(legacySnapshot),
+            forKey: "ai.provider-profiles.v1"
+        )
+
+        let store = AIProviderProfileStore(userDefaults: defaults)
+
+        XCTAssertEqual(
+            store.activeProfile?.visionModel,
+            AIProviderProfileStore.defaultQwenVisionModel
+        )
+
+        let restoredAgain = AIProviderProfileStore(userDefaults: defaults)
+        XCTAssertEqual(
+            restoredAgain.activeProfile?.visionModel,
+            AIProviderProfileStore.defaultQwenVisionModel
+        )
+    }
+
+    func testCurrentQwenProfileCanExplicitlyDisableVision() throws {
+        let suiteName = "AIProviderProfileStoreTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let profile = AIProviderProfile(
+            displayName: "仅文字 Qwen",
+            kind: .qwen,
+            baseURL: QwenRegion.chinaBeijing.baseURL,
+            visionModel: nil,
+            textModel: "qwen3.7-plus"
+        )
+        let store = AIProviderProfileStore(userDefaults: defaults)
+        try store.upsert(profile)
+
+        let restored = AIProviderProfileStore(userDefaults: defaults)
+
+        XCTAssertNil(restored.profiles.first?.visionModel)
+    }
+}
+
+private struct LegacySnapshot: Codable {
+    let profiles: [AIProviderProfile]
+    let activeProfileID: UUID?
 }

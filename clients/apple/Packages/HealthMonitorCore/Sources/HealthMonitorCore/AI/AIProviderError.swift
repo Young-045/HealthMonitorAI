@@ -24,7 +24,7 @@ extension AIProviderError: LocalizedError {
         case .forbidden: "当前账号、Workspace 或 API Key 没有调用该模型的权限。"
         case .rateLimited: "Qwen 请求过于频繁或额度受限，请稍后再试。"
         case .serviceUnavailable: "Qwen 服务暂时不可用，请稍后再试。"
-        case .imageNotSupported: "当前版本尚未启用图片识别，请先使用文字描述餐食。"
+        case .imageNotSupported: "当前 Qwen 配置未填写视觉模型，请在“AI”页补充视觉模型后重试。"
         case .httpStatus(let status, let code):
             if let code { "Qwen 请求失败（HTTP \(status)，错误码 \(code)）。" }
             else { "Qwen 请求失败（HTTP \(status)）。" }

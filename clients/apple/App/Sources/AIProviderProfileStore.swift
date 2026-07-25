@@ -5,6 +5,8 @@ import Observation
 @MainActor
 @Observable
 final class AIProviderProfileStore {
+    static let defaultQwenVisionModel = "qwen3.7-plus"
+
     private(set) var profiles: [AIProviderProfile]
     private(set) var activeProfileID: UUID?
 
@@ -25,9 +27,16 @@ final class AIProviderProfileStore {
             return
         }
 
-        profiles = snapshot.profiles
+        let restoredProfiles = snapshot.schemaVersion < Snapshot.currentSchemaVersion
+            ? snapshot.profiles.map(Self.migratingLegacyProfile)
+            : snapshot.profiles
+        profiles = restoredProfiles
         activeProfileID = snapshot.activeProfileID.flatMap { selectedID in
-            snapshot.profiles.contains { $0.id == selectedID } ? selectedID : nil
+            restoredProfiles.contains { $0.id == selectedID } ? selectedID : nil
+        }
+
+        if snapshot.schemaVersion < Snapshot.currentSchemaVersion {
+            try? persist()
         }
     }
 
@@ -67,10 +76,21 @@ final class AIProviderProfileStore {
 
     private func persist() throws {
         let data = try JSONEncoder().encode(Snapshot(
+            schemaVersion: Snapshot.currentSchemaVersion,
             profiles: profiles,
             activeProfileID: activeProfileID
         ))
         userDefaults.set(data, forKey: storageKey)
+    }
+
+    private static func migratingLegacyProfile(_ profile: AIProviderProfile) -> AIProviderProfile {
+        guard profile.kind == .qwen,
+              profile.visionModel?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false else {
+            return profile
+        }
+        var migrated = profile
+        migrated.visionModel = defaultQwenVisionModel
+        return migrated
     }
 }
 
@@ -79,6 +99,32 @@ enum AIProviderProfileStoreError: Error, Equatable {
 }
 
 private struct Snapshot: Codable {
+    static let currentSchemaVersion = 2
+
+    let schemaVersion: Int
     let profiles: [AIProviderProfile]
     let activeProfileID: UUID?
+
+    init(
+        schemaVersion: Int,
+        profiles: [AIProviderProfile],
+        activeProfileID: UUID?
+    ) {
+        self.schemaVersion = schemaVersion
+        self.profiles = profiles
+        self.activeProfileID = activeProfileID
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case schemaVersion
+        case profiles
+        case activeProfileID
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 1
+        profiles = try container.decode([AIProviderProfile].self, forKey: .profiles)
+        activeProfileID = try container.decodeIfPresent(UUID.self, forKey: .activeProfileID)
+    }
 }

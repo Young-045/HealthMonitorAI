@@ -29,7 +29,9 @@ struct QwenProfileEditorView: View {
         _region = State(initialValue: selectedRegion)
         _baseURL = State(initialValue: profile?.baseURL?.absoluteString ?? selectedRegion.baseURL.absoluteString)
         _textModel = State(initialValue: profile?.textModel ?? "qwen3.7-plus")
-        _visionModel = State(initialValue: profile?.visionModel ?? "qwen3.7-plus")
+        _visionModel = State(
+            initialValue: profile?.visionModel ?? AIProviderProfileStore.defaultQwenVisionModel
+        )
         _timeoutSeconds = State(initialValue: profile?.timeoutSeconds ?? 60)
         _hasSavedAPIKey = State(initialValue: AIProviderSecretCoordinator().hasAPIKey(profileID: id))
     }

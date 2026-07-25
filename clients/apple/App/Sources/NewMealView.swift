@@ -34,6 +34,7 @@ struct NewMealView: View {
     @State private var previewHealthSummary: MealHealthSummary?
     @State private var matchedFoodItems: [MealFoodItem] = []
     @State private var confirmedWeightInputs: [Int: String] = [:]
+    @State private var confirmedLabelWeightInput = ""
     @State private var authorityMatches: [Int: AuthorityFoodCatalogItem] = [:]
     private let healthKitWriter = HealthKitNutritionWriter()
     private let providerSecrets = AIProviderSecretCoordinator()
@@ -184,10 +185,15 @@ struct NewMealView: View {
     private func recognizedFoodsView(_ result: MealAnalysisResult) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("识别结果（尚未保存）").font(.headline)
-            if result.foods.isEmpty {
+            recognizedPackagingView(result)
+            if result.foods.isEmpty,
+               result.product?.name?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false {
                 Text("未识别到明确食物，请修改描述或照片后重试。")
                     .foregroundStyle(.secondary)
-            } else {
+            } else if !result.foods.isEmpty {
+                if result.nutritionLabel?.present == true {
+                    Text("包装外的其他餐食").font(.subheadline).fontWeight(.semibold)
+                }
                 ForEach(Array(result.foods.enumerated()), id: \.offset) { index, food in
                     VStack(alignment: .leading, spacing: 4) {
                         Text(food.name).fontWeight(.semibold)
@@ -224,11 +230,88 @@ struct NewMealView: View {
                         }
                     }
                 }
-                Button(allFoodsMatch(result) ? "确认并用本地营养计算" : "回填名称与重量备注") {
-                    applyAIResult(result)
+            }
+            Button(confirmAIResultTitle(result)) {
+                applyAIResult(result)
+            }
+            Text(result.nutritionLabel?.present == true
+                 ? "营养表数字由 AI 转录，按确认的实际摄入重量在本机换算；保存前请核对原图。"
+                 : "AI 只识别食物和重量，不直接写入数据库或 Apple 健康。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private func recognizedPackagingView(_ result: MealAnalysisResult) -> some View {
+        if let product = result.product {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(product.name ?? "未读出商品名称").fontWeight(.semibold)
+                if let brand = product.brand {
+                    Text("品牌：\(brand)").font(.caption).foregroundStyle(.secondary)
+                }
+                Text("商品信息置信度 \(percentText(product.confidence))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+
+        if let package = result.package {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("包装信息").font(.subheadline).fontWeight(.semibold)
+                if let netWeight = package.netWeightGrams {
+                    Text("净含量：\(decimalText(netWeight)) 克")
+                }
+                if let drainedWeight = package.drainedWeightGrams {
+                    Text("沥干重量：\(decimalText(drainedWeight)) 克")
+                }
+                if let servingSize = package.servingSizeGrams {
+                    Text("每份：\(decimalText(servingSize)) 克")
+                }
+                if let servings = package.servingsPerPackage {
+                    Text("每包装：\(decimalText(servings)) 份")
                 }
             }
-            Text("AI 只识别食物和重量，不直接写入营养数字、数据库或 Apple 健康。")
+            .font(.caption)
+        }
+
+        if let label = result.nutritionLabel, label.present {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("检测到营养成分表 · \(nutritionBasisText(label.basis))")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                labelValue("热量", value: label.energyKilocalories, unit: "千卡")
+                labelValue("蛋白质", value: label.proteinGrams, unit: "克")
+                labelValue("碳水", value: label.carbohydrateGrams, unit: "克")
+                labelValue("脂肪", value: label.fatGrams, unit: "克")
+                HStack {
+                    Text("确认实际摄入重量")
+                    Spacer()
+                    TextField("克", text: $confirmedLabelWeightInput)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .frame(maxWidth: 90)
+                    Text("克").foregroundStyle(.secondary)
+                }
+                if !label.unreadableFields.isEmpty {
+                    Text("未能读清：\(label.unreadableFields.joined(separator: "、"))")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+            }
+        }
+
+        if !result.warnings.isEmpty {
+            Text("提示：\(result.warnings.joined(separator: "；"))")
+                .font(.caption)
+                .foregroundStyle(.orange)
+        }
+    }
+
+    @ViewBuilder
+    private func labelValue(_ name: String, value: Decimal?, unit: String) -> some View {
+        if let value {
+            Text("\(name)：\(decimalText(value)) \(unit)")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -244,6 +327,11 @@ struct NewMealView: View {
         }
         guard providerSecrets.hasAPIKey(profileID: profile.id) else {
             aiErrorMessage = "当前 Qwen Profile 缺少 API Key。"
+            return
+        }
+        if processedImageData != nil,
+           profile.visionModel?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false {
+            aiErrorMessage = AIProviderError.imageNotSupported.localizedDescription
             return
         }
         previewHealthSummary = healthSummarySharing.isEnabled
@@ -280,6 +368,7 @@ struct NewMealView: View {
         matchedFoodItems = []
         authorityMatches = [:]
         confirmedWeightInputs = [:]
+        confirmedLabelWeightInput = ""
         aiErrorMessage = nil
         defer { isAnalyzing = false }
         do {
@@ -298,6 +387,7 @@ struct NewMealView: View {
                 healthSummary: previewHealthSummary
             ))
             aiResult = result
+            confirmedLabelWeightInput = defaultConsumedWeightText(for: result) ?? ""
             confirmedWeightInputs = Dictionary(uniqueKeysWithValues: result.foods.enumerated().map {
                 ($0.offset, decimalText($0.element.estimatedWeightGrams))
             })
@@ -332,7 +422,18 @@ struct NewMealView: View {
     }
 
     private func applyAIResult(_ result: MealAnalysisResult) {
-        foodName = result.foods.map(\.name).joined(separator: "、")
+        let recognizedNames = ([result.product?.name] + result.foods.map { Optional($0.name) })
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        if !recognizedNames.isEmpty {
+            foodName = recognizedNames.reduce(into: [String]()) { names, name in
+                if !names.contains(name) { names.append(name) }
+            }.joined(separator: "、")
+        }
+        if let label = result.nutritionLabel, label.present {
+            applyNutritionLabel(label, result: result)
+            return
+        }
         let estimates = result.foods.enumerated().map { index, food in
             let weight = confirmedWeightInputs[index] ?? decimalText(food.estimatedWeightGrams)
             return "\(food.name)确认\(weight)克"
@@ -380,6 +481,80 @@ struct NewMealView: View {
         }
     }
 
+    private func applyNutritionLabel(
+        _ label: RecognizedNutritionLabel,
+        result: MealAnalysisResult
+    ) {
+        guard let consumedWeight = parsedDecimal(confirmedLabelWeightInput) else {
+            aiErrorMessage = NutritionLabelCalculationError.invalidConsumedWeight.localizedDescription
+            return
+        }
+
+        do {
+            var calculated = try NutritionLabelCalculator.calculate(
+                label: label,
+                package: result.package,
+                consumedWeightGrams: consumedWeight
+            )
+            var additionalWarning: String?
+            if !result.foods.isEmpty {
+                let matches = result.foods.enumerated().compactMap {
+                    index, food -> (Int, RecognizedFood, ResolvedFoodCatalogMatch)? in
+                    guard let match = resolvedMatch(food: food, index: index),
+                          match.canCalculate else {
+                        return nil
+                    }
+                    return (index, food, match)
+                }
+                if matches.count == result.foods.count {
+                    let items = try matches.map { index, food, match in
+                        guard let weight = parsedConfirmedWeight(index: index), weight > 0 else {
+                            throw ConfirmedFoodInputError.invalidWeight(food.name)
+                        }
+                        return try match.mealFoodItem(
+                            recognizedFood: food,
+                            confirmedWeightGrams: weight
+                        )
+                    }
+                    let additional = try MealNutritionCalculator.calculate(foodItems: items).total
+                    calculated = CalculatedLabelNutrition(
+                        energyKilocalories: combined(calculated.energyKilocalories, additional.energyKilocalories),
+                        proteinGrams: combined(calculated.proteinGrams, additional.proteinGrams),
+                        carbohydrateGrams: combined(calculated.carbohydrateGrams, additional.carbohydrateGrams),
+                        fatGrams: combined(calculated.fatGrams, additional.fatGrams),
+                        fiberGrams: combined(calculated.fiberGrams, additional.fiberGrams),
+                        sugarGrams: combined(calculated.sugarGrams, additional.sugarGrams),
+                        sodiumMilligrams: combined(calculated.sodiumMilligrams, additional.sodiumMilligrams)
+                    )
+                } else {
+                    additionalWarning = "包装外仍有未匹配食物，标签营养已回填，但其他食物需手动补充。"
+                }
+            }
+
+            calories = calculated.energyKilocalories.map(decimalText) ?? ""
+            protein = calculated.proteinGrams.map(decimalText) ?? ""
+            carbohydrate = calculated.carbohydrateGrams.map(decimalText) ?? ""
+            fat = calculated.fatGrams.map(decimalText) ?? ""
+            matchedFoodItems = []
+
+            var notes = [
+                "营养成分表：\(nutritionBasisText(label.basis))",
+                "实际摄入 \(decimalText(consumedWeight)) 克"
+            ]
+            if let netWeight = result.package?.netWeightGrams {
+                notes.append("包装净含量 \(decimalText(netWeight)) 克")
+            }
+            if !label.unreadableFields.isEmpty {
+                notes.append("未读清：\(label.unreadableFields.joined(separator: "、"))")
+            }
+            note = notes.joined(separator: "；")
+            aiErrorMessage = additionalWarning
+        } catch {
+            matchedFoodItems = []
+            aiErrorMessage = "营养成分表换算失败：\(error.localizedDescription)"
+        }
+    }
+
     private func confirmedWeightBinding(index: Int, food: RecognizedFood) -> Binding<String> {
         Binding(
             get: { confirmedWeightInputs[index] ?? decimalText(food.estimatedWeightGrams) },
@@ -419,6 +594,43 @@ struct NewMealView: View {
 
     private func decimalText(_ value: Decimal) -> String {
         NSDecimalNumber(decimal: value).stringValue
+    }
+
+    private func parsedDecimal(_ text: String) -> Decimal? {
+        let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: ",", with: ".")
+        guard let value = Decimal(string: normalized, locale: Locale(identifier: "en_US_POSIX")),
+              value > 0, value <= 20_000 else {
+            return nil
+        }
+        return value
+    }
+
+    private func combined(_ primary: Decimal?, _ additional: Decimal) -> Decimal? {
+        primary.map { $0 + additional }
+    }
+
+    private func defaultConsumedWeightText(for result: MealAnalysisResult) -> String? {
+        let weight = result.package?.drainedWeightGrams
+            ?? result.package?.netWeightGrams
+            ?? result.package?.servingSizeGrams
+        return weight.map(decimalText)
+    }
+
+    private func confirmAIResultTitle(_ result: MealAnalysisResult) -> String {
+        if result.nutritionLabel?.present == true {
+            return "确认摄入量并采用营养成分表"
+        }
+        return allFoodsMatch(result) ? "确认并用本地营养计算" : "回填名称与重量备注"
+    }
+
+    private func nutritionBasisText(_ basis: NutritionLabelBasis) -> String {
+        switch basis {
+        case .per100g: "每 100 克"
+        case .perServing: "每份"
+        case .perPackage: "每包装"
+        case .unknown: "计量依据未读清"
+        }
     }
 
     private func percentText(_ value: Decimal) -> String {

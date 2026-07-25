@@ -14,7 +14,7 @@ internal static class ConfigurationEndpoints
                 var configuration = await store.GetAsync(cancellationToken);
                 return TypedResults.Ok(new AppConfigurationResponse(
                     ApiVersion: "1.0",
-                    MealAnalysisSchemaVersion: "1.0",
+                    MealAnalysisSchemaVersion: "2.0",
                     OfficialAiAvailable: configuration.IsReady,
                     MaximumImageBytes: 5 * 1024 * 1024,
                     SupportedImageContentTypes: ["image/jpeg", "image/png", "image/heic"]));

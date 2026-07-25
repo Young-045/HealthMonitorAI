@@ -17,8 +17,8 @@ enum MealImagePreprocessorError: LocalizedError {
 enum MealImagePreprocessor {
     static func jpegData(
         from sourceData: Data,
-        maximumDimension: CGFloat = 2_048,
-        compressionQuality: CGFloat = 0.82
+        maximumDimension: CGFloat = 3_072,
+        compressionQuality: CGFloat = 0.9
     ) throws -> Data {
         guard let image = UIImage(data: sourceData),
               image.size.width > 0,
@@ -43,10 +43,12 @@ enum MealImagePreprocessor {
             context.cgContext.fill(CGRect(origin: .zero, size: targetSize))
             image.draw(in: CGRect(origin: .zero, size: targetSize))
         }
-        guard let data = normalized.jpegData(compressionQuality: compressionQuality),
-              data.count < 7 * 1_024 * 1_024 else {
-            throw MealImagePreprocessorError.encodedImageTooLarge
+        for quality in [compressionQuality, 0.82, 0.72] {
+            if let data = normalized.jpegData(compressionQuality: quality),
+               data.count < 7 * 1_024 * 1_024 {
+                return data
+            }
         }
-        return data
+        throw MealImagePreprocessorError.encodedImageTooLarge
     }
 }

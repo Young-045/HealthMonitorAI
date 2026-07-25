@@ -37,10 +37,43 @@ public sealed record MealImageRequest
 public sealed record MealAnalysisResponse(
     string SchemaVersion,
     string RequestId,
+    string ImageType,
+    RecognizedProductResponse? Product,
+    MealPackageInformationResponse? Package,
+    RecognizedNutritionLabelResponse? NutritionLabel,
     IReadOnlyList<RecognizedFoodResponse> Foods,
     IReadOnlyList<string> Warnings,
     string Model,
     long ProcessingTimeMilliseconds);
+
+public sealed record RecognizedProductResponse(
+    string? Name,
+    string? Brand,
+    string? Barcode,
+    decimal Confidence);
+
+public sealed record MealPackageInformationResponse(
+    decimal? NetWeightGrams,
+    decimal? DrainedWeightGrams,
+    decimal? ServingSizeGrams,
+    decimal? ServingsPerPackage,
+    decimal Confidence);
+
+public sealed record RecognizedNutritionLabelResponse(
+    bool Present,
+    string Basis,
+    decimal? EnergyKilocalories,
+    decimal? EnergyKilojoules,
+    decimal? ProteinGrams,
+    decimal? CarbohydrateGrams,
+    decimal? FatGrams,
+    decimal? FiberGrams,
+    decimal? SugarGrams,
+    decimal? SodiumMilligrams,
+    decimal? SaltEquivalentGrams,
+    string? RawText,
+    IReadOnlyList<string> UnreadableFields,
+    decimal Confidence);
 
 /// <summary>Represents one recognized food with an explicit confidence and uncertainty range.</summary>
 public sealed record RecognizedFoodResponse(
